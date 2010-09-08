@@ -1,0 +1,316 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="options.css">
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript" src="jscolor/jscolor.js"></script>
+<script type="text/javascript" src="settings.js"></script>
+<script type="text/javascript">
+google.load("language", "1");
+google.load("elements", "1", {packages: "transliteration"});
+
+function update_visible_options()
+{
+  var color_translated_element = document.getElementById("color_translated_input");
+  var color_changed_only_element = document.getElementById("color_changed_only_row");
+  var color_changed_only_row =  document.getElementById("color_changed_only_row");
+  var translation_color_row =  document.getElementById("translation_color_row");
+  var transliterate_element = document.getElementById("transliterate_input");
+  var starting_language_row = document.getElementById("starting_language_row");
+  var ending_language_row = document.getElementById("ending_language_row");
+  var transliterate_target_language_row = document.getElementById("transliterate_target_language_row");
+
+  if (color_translated_element.checked)
+  {
+    color_changed_only_row.style.display = "block";
+    translation_color_row.style.display = "block";
+  }
+  else
+  {
+    color_changed_only_row.style.display = "none";
+    translation_color_row.style.display = "none";
+  }
+  if (transliterate_element.checked) {
+    starting_language_row.style.display = "none";
+    target_language_row.style.display = "none";
+    transliterate_target_language_row.style.display = "block";
+  }
+  else {
+    starting_language_row.style.display = "block";
+    target_language_row.style.display = "block";
+    transliterate_target_language_row.style.display = "none";
+  }
+  
+}
+
+
+
+function save_checkbox(name)
+{
+  var name_element = document.getElementById(name + '_input');
+  if (name_element.checked)
+  {
+    localStorage[name] = 1;
+  }
+  else
+  {
+    localStorage[name] = 0;
+  }
+}
+
+// Saves options to localStorage.
+function save_options() {
+  var status = document.getElementById("status");
+  var probability_element = document.getElementById("probability_input");
+  var joined_probability_element = document.getElementById("joined_probability_input");
+  var minimum_length_element = document.getElementById("minimum_length_input");
+  var start_enabled_element = document.getElementById("start_enabled_input");
+  var starting_language_element = document.getElementById("starting_language_input");
+  var target_language_element = document.getElementById("target_language_input");
+  var transliterate_target_element = document.getElementById("transliterate_target_language_input");
+  var show_pinyin_element = document.getElementById("show_pinyin_input");
+  var translation_color_element = document.getElementById("translation_color_input");
+ 
+
+  if ((parseInt(probability_element.value) != 'NaN') && parseInt(probability_element.value) > 1)
+  { 
+    localStorage.probability = probability_element.value;
+  }
+  else
+  {
+    status.innerHTML = '<span style="color:FF0000">Probability must be a number greater than 1</span>';
+    return false;
+  }
+
+  if ((parseInt(joined_probability_element.value) != 'NaN') && parseInt(joined_probability_element.value) > 1)
+  { 
+    localStorage.joined_probability = joined_probability_element.value;
+  }
+  else
+  {
+    status.innerHTML = '<span style="color:FF0000">Adjacent word probability must be a number greater than 1</span>';
+    return false;
+  }
+
+
+  localStorage.minimum_length = minimum_length_element.value;
+  if ((parseInt(minimum_length_element.value) != 'NaN') && parseInt(minimum_length_element.value) > 1)
+  { 
+    localStorage.minimum_length = minimum_length_element.value;
+  }
+  else
+  {
+    status.innerHTML = '<h2 style="color:FF0000">Minimum word length must be a number greater than 1</h2>';
+    return false;
+  }
+
+
+
+  save_checkbox("color_translated");
+  save_checkbox("color_changed_only");
+  save_checkbox("start_enabled");
+  save_checkbox("join_adjacent");
+  save_checkbox("transliterate");
+  save_checkbox("parenthesize_original");
+  save_checkbox("join_short");
+  save_checkbox("show_pinyin");
+  localStorage.translation_color = translation_color_element.value;
+  localStorage.starting_language = starting_language_element.value;
+  localStorage.target_language = target_language_element.value;
+  localStorage.transliterate_target_language = transliterate_target_element.value;
+  // Update status to let user know options were saved.
+  status.style.color = "#22DD44";
+  status.innerHTML = "Changes saved";
+  chrome.extension.getBackgroundPage().settings.updateBadge();
+
+  setTimeout(function() {
+    status.innerHTML = "";
+  }, 2500);
+}
+
+
+
+
+function restore_checkbox(name, settings)
+{
+ 
+  var e = document.getElementById(name + '_input');
+  if (settings.getSetting(name) == 1) {
+    e.checked = true;
+  }
+  else
+  {
+    e.checked = false;
+  }
+}
+
+function is_eligible(name, transliterate)
+{
+  if (transliterate == 1) {
+    return True;
+  }
+  else {
+    return 
+  }
+}
+
+function populate_language_select(name, transliterate, settings)
+{
+  var i = 0;
+  var select_element = document.getElementById(name + '_input');
+  if (transliterate) {
+     var list = google.elements.transliteration.LanguageCode;
+  }
+  else {
+    var list = google.language.Languages;
+  }
+  for (var language_name in list)
+  {
+    if ((transliterate == 0) && (!google.language.isTranslatable(list[language_name])))  {
+      continue;
+    }
+    if (language_name == "UNKNOWN") {
+      continue;
+    }
+    select_element.options[i] = new Option(language_name, google.language.Languages[language_name], false, false);
+    i++;
+  }
+  select_element.value = settings.getSetting(name);
+}
+
+// Restores select box state to saved value from localStorage.
+function restore_options() {
+
+  var settings = new Settings();
+  var probability_element = document.getElementById("probability_input");
+  probability_element.value = settings.getSetting("probability");
+
+  var joined_probability_element = document.getElementById("joined_probability_input");
+  joined_probability_element.value = settings.getSetting("joined_probability");
+
+
+  var minimum_length_element = document.getElementById("minimum_length_input");
+  minimum_length_element.value = settings.getSetting("minimum_length");
+
+  var translation_color_element = document.getElementById("translation_color_input");
+
+  restore_checkbox("color_changed_only", settings);
+  restore_checkbox("color_translated", settings);
+  restore_checkbox("start_enabled", settings);
+  restore_checkbox("join_adjacent", settings);
+  restore_checkbox("transliterate", settings);
+  restore_checkbox("show_pinyin", settings);
+  restore_checkbox("parenthesize_original", settings);
+  restore_checkbox("join_short", settings);
+  translation_color_element.style.backgroundColor = settings.getSetting("translation_color");
+  translation_color_element.value = settings.getSetting("translation_color");
+  var starting_language_element = document.getElementById("starting_language_input");
+  var i = 0;
+
+
+  populate_language_select("starting_language", 0, settings);
+  populate_language_select("target_language", 0, settings);
+  populate_language_select("transliterate_target_language", 1, settings);
+
+  update_visible_options();
+  document.getElementById("branding").innerHTML = "";
+  google.language.getBranding("branding");
+
+}
+</script>
+<title>Polyglot Options</title>
+
+</head>
+
+<body onload="restore_options()">
+<h2>Polyglot Options</h2>
+
+
+<div class="option_row">
+<div class="option_title">Base Translation Probability</div>
+Normally, words have a 1 in <input type="text" size="1" id="probability_input" /> chance of being translated
+</div>
+
+<div class="option_row">
+<div class="option_title"1>Subsequent Translation Probability</div>
+If a word is updated, the word after it has a 1 in <input type="text" size="1" id="joined_probability_input" /> chance of being translated
+</div>
+
+<div class="option_row">
+<div class="option_title">Minimum Length</div>Don't translate phrases with fewer than <input size="1" type="text" id="minimum_length_input" /> letters.
+</div>
+
+<div class="option_row">
+<div class="option_title">If a chosen word is shorter than the minimum length, join it to the next word for translation</div> <input type="checkbox" id="join_short_input" />
+</div>
+
+<div class="option_row">
+<div class="option_title">Translate adjacent selected words as a single phrase</div><input type="checkbox" id="join_adjacent_input" />
+</div>
+
+<div class="option_row">
+<div class="option_title">Color translated words</div> <input onchange="update_visible_options()" type="checkbox" id="color_translated_input" />
+</div>
+
+<div class="option_row" id="color_changed_only_row">
+<div class="option_title">Don't color words that stay the same when translated</div> <input type="checkbox" id="color_changed_only_input" />
+</div>
+
+<div class="option_row" id="translation_color_row">
+<div class="option_title">Translated Word Color</div> <input class="color" id="translation_color_input" /> 
+</div>
+
+
+<div class="option_row">
+<div class="option_title">Show original word in parentheses</div> <input type="checkbox" id="parenthesize_original_input" />
+</div>
+
+
+<div class="option_row">
+<div class="option_title">Activate Polyglot at Chrome startup</div> <input type="checkbox" id="start_enabled_input" />
+</div>
+
+
+
+<div class="option_row">
+<div class="option_title">Transliterate words into a different writing system without translating them</div><input type="checkbox" id="transliterate_input" onchange="update_visible_options()" />
+</div>
+
+<div class="option_row">
+<div class="option_title">Show pinyin for Chinese characters.</div><input type="checkbox" id="show_pinyin_input" onchange="update_visible_options()" />
+</div>
+
+<div class="option_row" id="target_language_row">
+<div class="option_title">Target Language</div>
+<select id="target_language_input">
+</select>
+</div>
+
+<div class="option_row" style="display:none" id="transliterate_target_language_row">
+<div class="option_title">Target Language</div>
+<select id="transliterate_target_language_input">
+</select>
+</div>
+
+
+<div class="option_row">
+
+
+<div class="option_row" id="starting_language_row">
+<h4><i>Experimental Setting : Changing the following values may cause your browser to crash.  This is especially likely if a language that reads from right-to-left is selected.</i></h4>
+<div class="option_title">Starting Language </div>
+<select id="starting_language_input">
+</select>
+</div>
+
+
+<div class="option_row">
+<button onclick="save_options()">Save</button>
+<button onclick="chrome.extension.getBackgroundPage().settings.reset_settings(); restore_options(); save_options();">Reset Defaults</button>
+
+</div>
+
+<h4 id="status"></h4>
+<div id="branding"> </div>
+
+</body>
+</html>

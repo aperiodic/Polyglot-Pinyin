@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript" src="settings.js"></script>
+<script type="text/javascript" src="translate.js"></script>
+<script type="text/javascript" src="transliterate.js"></script>
+
+
+<script type="text/javascript">
+const TRANSLATION_COUNT_LIMIT = 3200;
+
+var enabled;
+google.load("language", "1");
+
+function updateBadge(enabled)
+{
+  if (enabled == 1) {
+    chrome.browserAction.setBadgeText({text:""})
+  }
+  else
+  {
+    chrome.browserAction.setBadgeText({text:"OFF"})
+  }
+}
+
+var settings = new Settings();
+
+enabled = settings.getSetting("start_enabled");
+
+
+//Register the methods to interact with content scripts
+chrome.extension.onConnect.addListener(function(port) {
+  console.assert(port.name == "trans");
+  chrome.browserAction.onClicked.addListener(function(tab) {
+    port.postMessage({"toggle_enabled":1});
+  });
+
+  port.onMessage.addListener(function(msg) {
+    var message;
+    if (msg.text)
+    {
+      var word_list = msg.text;
+     
+      if (word_list.length > TRANSLATION_COUNT_LIMIT)
+      {
+        word_list = word_list.splice(0, TRANSLATION_COUNT_LIMIT);    
+      }
+      if (settings.getSetting("transliterate") == 0) {
+        var translator = new Translate(word_list, settings, function(response) {port.postMessage(response)});
+        delete translator;
+      }
+      else
+      {
+        var transliterator = new Transliterate(word_list, settings, function(response) {port.postMessage(response)});
+        delete transliterator;
+      }
+    }
+    else 
+    { 
+      message = settings.getSettings();
+      message["enabled"] = enabled;
+      port.postMessage(message);
+    }
+})});
+
+
+//Register the icon/badge update hooks
+chrome.browserAction.onClicked.addListener(function(tab) {
+  enabled = (enabled != 1);
+  updateBadge(enabled);
+});
+
+chrome.browserAction.setBadgeBackgroundColor({color:[188, 0, 188, 255]});
+updateBadge(enabled);
+
+
+</script>
+<body></body>
+</html>
